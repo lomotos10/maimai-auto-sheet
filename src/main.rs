@@ -21,7 +21,7 @@ lazy_static! {
     static ref SONG_REPLACEMENT: HashMap<String, String> = {
         [
             ("GIGANTØMAKHIA", "GIGANTOMAKHIA"),
-            ("D✪N’T ST✪P R✪CKIN’", "D✪N’T  ST✪P  R✪CKIN’")
+            ("D✪N’T  ST✪P  R✪CKIN’", "D✪N’T ST✪P R✪CKIN’")
         ]
         .iter()
         .map(|(k, v)| (k.to_string(), v.to_string()))
