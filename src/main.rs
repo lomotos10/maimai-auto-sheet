@@ -27,10 +27,10 @@ pub enum GenericError {
     IO(#[from] std::io::Error),
 }
 
-#[derive(Debug, Eq, Hash, PartialEq, Clone, PartialOrd)]
+#[derive(Debug, Eq, Hash, PartialEq, Clone, PartialOrd, Ord)]
 enum ChartType {
-    Std,
     Dx,
+    Std,
 }
 
 #[derive(Debug, Eq, Hash, PartialEq, Clone)]
@@ -77,7 +77,13 @@ impl Ord for Song {
         let b = SONG_SORT_LIST.get(&other.title.to_string());
 
         match (a, b) {
-            (Some(a), Some(b)) => a.cmp(b),
+            (Some(a), Some(b)) => {
+                let cmp = a.cmp(b);
+                match cmp {
+                    Ordering::Equal => self.chart_type.cmp(&other.chart_type),
+                    _ => cmp
+                }
+            }
             (Some(_), None) => Ordering::Less,
             (None, Some(_)) => Ordering::Greater,
             (None, None) => self.title.cmp(&other.title),
