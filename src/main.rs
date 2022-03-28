@@ -1,8 +1,23 @@
 use html_parser::{Dom, Element, Node};
+use lazy_static::lazy_static;
+use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::{self, BufRead, Write};
 use thiserror::Error;
+
+lazy_static! {
+    static ref SONG_SORT_LIST: HashMap<String, usize> = {
+        let mut map = HashMap::new();
+        let file = File::open("data/ordering.txt").unwrap();
+        let lines = io::BufReader::new(file).lines();
+        for (i, line) in lines.flatten().enumerate() {
+            map.insert(line, i);
+        }
+
+        map
+    };
+}
 
 #[derive(Error, Debug)]
 pub enum GenericError {
@@ -12,10 +27,10 @@ pub enum GenericError {
     IO(#[from] std::io::Error),
 }
 
-#[derive(Debug, Eq, Hash, PartialEq, Clone)]
+#[derive(Debug, Eq, Hash, PartialEq, Clone, PartialOrd)]
 enum ChartType {
-    Dx,
     Std,
+    Dx,
 }
 
 #[derive(Debug, Eq, Hash, PartialEq, Clone)]
@@ -27,7 +42,7 @@ struct Level {
     rem: Option<String>,
 }
 
-#[derive(Eq, Hash, PartialEq, Debug)]
+#[derive(Eq, Hash, PartialEq, Debug, PartialOrd, Ord)]
 enum Diff {
     Bas,
     Adv,
@@ -36,10 +51,10 @@ enum Diff {
     Rem,
 }
 
-#[derive(Eq, Hash, PartialEq, Debug)]
+#[derive(Eq, Hash, PartialEq, Debug, PartialOrd, Ord)]
 struct Chart {
-    song: Song,
     diff: Diff,
+    song: Song,
 }
 
 #[derive(Debug, Eq, Hash, PartialEq, Clone)]
@@ -48,6 +63,26 @@ struct Song {
     title: String,
     chart_type: ChartType,
     level: Level,
+}
+
+impl PartialOrd for Song {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for Song {
+    fn cmp(&self, other: &Self) -> Ordering {
+        let a = SONG_SORT_LIST.get(&self.title.to_string());
+        let b = SONG_SORT_LIST.get(&other.title.to_string());
+
+        match (a, b) {
+            (Some(a), Some(b)) => a.cmp(b),
+            (Some(_), None) => Ordering::Less,
+            (None, Some(_)) => Ordering::Greater,
+            (None, None) => self.title.cmp(&other.title),
+        }
+    }
 }
 
 fn only_child_of_dom(elem: &Dom) -> &Element {
@@ -244,7 +279,9 @@ fn main() -> std::result::Result<(), GenericError> {
     // println!("{:#?}", level_collections);
 
     for level in levels {
-        let list = &level_collections[level];
+        let mut list = level_collections[level].iter().collect::<Vec<_>>().clone();
+        list.sort();
+
         let mut w = File::create(format!("charts/{}.csv", level))?;
         for chart in list {
             let max_len = 200;
