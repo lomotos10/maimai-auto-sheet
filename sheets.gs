@@ -1,4 +1,5 @@
 function generate_sheet() {
+  var columnArray = ["A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z","AA","AB","AC","AD","AE","AF","AG","AH","AI","AJ","AK","AL","AM","AN","AO","AP","AQ","AR","AS","AT","AU","AV","AW","AX","AY","AZ"];
   var sheet = 
      SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Sheet1');
   var sheet2 = 
@@ -6,9 +7,9 @@ function generate_sheet() {
   var sheet0 = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Sheet0');
   var blank = " ";
   var data = sheet.getDataRange().getValues();
-  var n = 0; // 1, 2, 3, ...
-  for (var i = n*50; i < data.length; i++)  {
-  // for (var i = n*50 + 30; i < n*50 + 50; i++)  {
+  var n = 0;
+  // for (var i = n*50; i < data.length; i++)  {
+  for (var i = n*50 + 0; i < n*50 + 50; i++)  {
     var title = data[i][0];
     var dx = data[i][1];
     var diff = data[i][2];
@@ -24,6 +25,8 @@ function generate_sheet() {
     } else {
       var center = false;
     }
+    // EN ideal width: "SPICY SWINGY STYLE"
+    // reference for later: JP ideal width is "スーパーシンメトリー"
 
     if (dx == "DX") {
       if (diff == "BAS") {
@@ -78,6 +81,10 @@ function generate_sheet() {
       sheet2.getRange(row_base + 3, col_base + 2).setValue(blank);
     }
     sheet2.getRange(row_base + 4, col_base + 1).setValue(level);
+
+    sheet2.getRange(row_base + 5, col_base + 1)
+      .setFormula("=IFERROR(VLOOKUP(" + columnArray[col_base] + (row_base+3)
+      +"&\"$$\"&"+ columnArray[col_base+0] + (row_base+4)+", data!$B$3:$E$5999, 4, FALSE), \"N/A\")");
 
   }
 }
