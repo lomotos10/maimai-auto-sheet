@@ -8,5 +8,4 @@ edition = "2018"
 [dependencies]
 html_parser = "0.6.2"
 thiserror = "1.0.30"
-html2text = "0.3.1"
 lazy_static = "1.4.0"

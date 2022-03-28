@@ -17,6 +17,26 @@ lazy_static! {
 
         map
     };
+
+    static ref SONG_REPLACEMENT: HashMap<String, String> = {
+        [
+            ("GIGANTØMAKHIA", "GIGANTOMAKHIA"),
+            ("D✪N’T ST✪P R✪CKIN’", "D✪N’T  ST✪P  R✪CKIN’")
+        ]
+        .iter()
+        .map(|(k, v)| (k.to_string(), v.to_string()))
+        .collect::<HashMap<_, _>>()
+    };
+
+    static ref HTML_REPL: Vec<(String, String)> = {
+        [
+            ("&amp;", "&"),
+            ("&gt;", ">")
+        ]
+        .iter()
+        .map(|(a, b)| (a.to_string(), b.to_string()))
+        .collect()
+    };
 }
 
 #[derive(Error, Debug)]
@@ -125,6 +145,14 @@ fn children_to_text(elem: &Element) -> String {
     }
 }
 
+fn de_html(s: &str) -> String {
+    let mut output = s.to_string();
+    for (f, t) in HTML_REPL.iter() {
+        output = str::replace(&output, f, t);
+    }
+    output
+}
+
 fn get_song_list() -> std::result::Result<Vec<Song>, GenericError> {
     let genres = vec!["pop", "nico", "touhou", "gv", "mai", "gc"];
     let mut songs = vec![];
@@ -169,6 +197,14 @@ fn get_song_list() -> std::result::Result<Vec<Song>, GenericError> {
             // let artist_title_elem = nth_child(title_elem, 2);
             assert_eq!(song_title_elem.classes[0], "titleText");
             let title = children_to_text(song_title_elem);
+            let title = de_html(&title);
+
+            let title = if SONG_REPLACEMENT.contains_key(&title) {
+                SONG_REPLACEMENT[&title].clone()
+            } else {
+                title
+            };
+            
 
             // levels & DX/STD
             for index in &[2, 3] {
@@ -216,7 +252,6 @@ fn get_song_list() -> std::result::Result<Vec<Song>, GenericError> {
     Ok(songs)
 }
 
-use html2text::from_read;
 
 fn main() -> std::result::Result<(), GenericError> {
     let songs = get_song_list()?;
@@ -290,11 +325,6 @@ fn main() -> std::result::Result<(), GenericError> {
 
         let mut w = File::create(format!("charts/{}.csv", level))?;
         for chart in list {
-            let max_len = 200;
-            assert!(chart.song.title.len() < max_len);
-            let title = from_read(chart.song.title.as_bytes(), max_len)
-                .trim()
-                .to_string();
 
             let chart_type = match chart.song.chart_type {
                 ChartType::Dx => "DX",
@@ -309,8 +339,8 @@ fn main() -> std::result::Result<(), GenericError> {
             };
             writeln!(
                 &mut w,
-                "{}\t{}\t{}\t{}",
-                title, chart_type, diff, chart.song.jacket
+                "'{}\t{}\t{}\t{}",
+                chart.song.title, chart_type, diff, chart.song.jacket
             )?;
         }
     }
