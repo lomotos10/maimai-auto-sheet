@@ -12,3 +12,4 @@
 
 - [x] Left-align/Middle-align based on title length
   - [ ] Currently bugged on non-roman characters
+- [ ] Find online source for JP RECOMMENDED sorting - ditch `ordering.txt`
