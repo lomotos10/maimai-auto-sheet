@@ -17,25 +17,20 @@ lazy_static! {
 
         map
     };
-
     static ref SONG_REPLACEMENT: HashMap<String, String> = {
         [
             ("GIGANTØMAKHIA", "GIGANTOMAKHIA"),
-            ("D✪N’T  ST✪P  R✪CKIN’", "D✪N’T ST✪P R✪CKIN’")
+            // ("D✪N’T  ST✪P  R✪CKIN’", "D✪N’T ST✪P R✪CKIN’"),
         ]
         .iter()
         .map(|(k, v)| (k.to_string(), v.to_string()))
         .collect::<HashMap<_, _>>()
     };
-
     static ref HTML_REPL: Vec<(String, String)> = {
-        [
-            ("&amp;", "&"),
-            ("&gt;", ">")
-        ]
-        .iter()
-        .map(|(a, b)| (a.to_string(), b.to_string()))
-        .collect()
+        [("&amp;", "&"), ("&gt;", ">")]
+            .iter()
+            .map(|(a, b)| (a.to_string(), b.to_string()))
+            .collect()
     };
 }
 
@@ -62,7 +57,7 @@ struct Level {
     rem: Option<String>,
 }
 
-#[derive(Eq, Hash, PartialEq, Debug, PartialOrd, Ord)]
+#[derive(Eq, Hash, PartialEq, Debug, PartialOrd, Ord, Clone)]
 enum Diff {
     Bas,
     Adv,
@@ -71,10 +66,16 @@ enum Diff {
     Rem,
 }
 
-#[derive(Eq, Hash, PartialEq, Debug, PartialOrd, Ord)]
+#[derive(Eq, Hash, PartialEq, Debug, PartialOrd, Ord, Clone)]
 struct Chart {
     diff: Diff,
     song: Song,
+}
+
+#[derive(Eq, Hash, PartialEq, Debug, PartialOrd, Ord, Clone)]
+struct ChartWithPrevVerLevel {
+    prev_level: String,
+    chart: Chart,
 }
 
 #[derive(Debug, Eq, Hash, PartialEq, Clone)]
@@ -101,7 +102,7 @@ impl Ord for Song {
                 let cmp = a.cmp(b);
                 match cmp {
                     Ordering::Equal => self.chart_type.cmp(&other.chart_type),
-                    _ => cmp
+                    _ => cmp,
                 }
             }
             (Some(_), None) => Ordering::Less,
@@ -204,7 +205,6 @@ fn get_song_list() -> std::result::Result<Vec<Song>, GenericError> {
             } else {
                 title
             };
-            
 
             // levels & DX/STD
             for index in &[2, 3] {
@@ -252,9 +252,53 @@ fn get_song_list() -> std::result::Result<Vec<Song>, GenericError> {
     Ok(songs)
 }
 
+// Key type: title, dx, diff
+fn set_intl_level_list() -> Result<HashMap<(String, ChartType, Diff), String>, GenericError> {
+    let mut level_list = HashMap::new();
+    let file = File::open("data/intl_lv_info.csv")?;
+    let lines = io::BufReader::new(file).lines();
+    for line in lines.flatten() {
+        let split = line.split('\t').collect::<Vec<_>>();
+        let name = split[0];
+        let dx = split[1];
+        let diff = split[2];
+        let cc = split[3].parse::<f64>().unwrap();
+
+        let mut lv = (cc as usize).to_string();
+        if cc - (cc.floor()) > 0.65 {
+            lv.push('+');
+        }
+        level_list.insert(
+            (
+                name.to_string(),
+                if dx == "DX" {
+                    ChartType::Dx
+                } else {
+                    ChartType::Std
+                },
+                if diff == "BAS" {
+                    Diff::Bas
+                } else if diff == "ADV" {
+                    Diff::Adv
+                } else if diff == "EXP" {
+                    Diff::Exp
+                } else if diff == "MAS" {
+                    Diff::Mas
+                } else if diff == "REM" {
+                    Diff::Rem
+                } else {
+                    panic!()
+                },
+            ),
+            lv,
+        );
+    }
+    Ok(level_list)
+}
 
 fn main() -> std::result::Result<(), GenericError> {
     let songs = get_song_list()?;
+    let intl_levels = set_intl_level_list()?;
 
     // deleted songs
     let mut intl_del_songs = HashSet::new();
@@ -318,14 +362,37 @@ fn main() -> std::result::Result<(), GenericError> {
     }
     // println!("{:#?}", intl_del_songs);
     // println!("{:#?}", level_collections);
+    // println!("{:#?}", intl_levels);
 
     for level in levels {
-        let mut list = level_collections[level].iter().collect::<Vec<_>>().clone();
+        let mut list = level_collections[level]
+            .iter()
+            .map(|chart| {
+                let prev_level = intl_levels
+                    .get(&(
+                        chart.song.title.clone(),
+                        chart.song.chart_type.clone(),
+                        chart.diff.clone(),
+                    ))
+                    .cloned()
+                    .unwrap_or_else(|| "N/A".to_string());
+
+                ChartWithPrevVerLevel {
+                    chart: chart.clone(),
+                    prev_level,
+                }
+            })
+            .collect::<Vec<_>>()
+            .clone();
         list.sort();
+        // let list = list
+        //     .iter()
+        //     .map(|chart_with_level| chart_with_level.chart.clone());
 
         let mut w = File::create(format!("charts/{}.csv", level))?;
-        for chart in list {
-
+        for chart_with_prev_level in list {
+            let prev_level = chart_with_prev_level.prev_level;
+            let chart = chart_with_prev_level.chart;
             let chart_type = match chart.song.chart_type {
                 ChartType::Dx => "DX",
                 ChartType::Std => "STD",
@@ -339,8 +406,8 @@ fn main() -> std::result::Result<(), GenericError> {
             };
             writeln!(
                 &mut w,
-                "'{}\t{}\t{}\t{}",
-                chart.song.title, chart_type, diff, chart.song.jacket
+                "'{}\t{}\t{}\t{}\t{}",
+                chart.song.title, chart_type, diff, chart.song.jacket, prev_level
             )?;
         }
     }
