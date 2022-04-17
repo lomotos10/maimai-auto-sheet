@@ -7,13 +7,37 @@ function generate_sheet() {
   var sheet0 = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Sheet0');
   var blank = " ";
   var data = sheet.getDataRange().getValues();
+  var prev_tier = "";
+  let col_idx = 0;
+  let row_idx = -1;
+  
   var n = 0;
-  // for (var i = n*50; i < data.length; i++)  {
-  for (var i = n*50 + 0; i < n*50 + 50; i++)  {
+
+  for (var i = 0; i < data.length; i++)  {
+    if (i == n*50 + 50) {
+      break;
+    }
     var title = data[i][0];
     var dx = data[i][1];
     var diff = data[i][2];
     var jacket = data[i][3];
+    var prev_level = data[i][4];
+
+    if (prev_tier == prev_level) {
+      col_idx++;
+      if (col_idx == 10) {
+        col_idx = 0;
+        row_idx++;
+      }
+    } else {
+      row_idx++;
+      col_idx = 0;
+      prev_tier = prev_level;
+    }
+
+    if (i < n*50 + 0) {
+      continue;
+    }
 
     // calculate alignment
     sheet0.getRange(8, 4 + 3*n).setValue(title);
@@ -68,8 +92,8 @@ function generate_sheet() {
                 .setSourceUrl(jacket)
                 .build();
 
-    let row_base = 5 + Math.floor(i / 10) * 7;
-    let col_base = 3 + i % 10 * 3;
+    let row_base = 5 + row_idx * 7;
+    let col_base = 3 + col_idx * 3;
     
     sheet2.getRange(row_base + 1, col_base + 1).setValue(image);  
     sheet2.getRange(row_base + 3, col_base + 1).setValue("'" + title);
