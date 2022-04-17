@@ -2,7 +2,7 @@
 
 ## Directions
 
-1. Set appropriate `data` html, `intl_del.txt`, `ordering.txt` files
+1. Set appropriate `data/(intl_del, intl_url, jp_url).txt` files (check version is correct)
 
 2. `cargo run` to get `charts`
 
@@ -12,4 +12,7 @@
 
 - [x] Left-align/Middle-align based on title length
   - [ ] Currently bugged on non-roman characters
-- [ ] Find online source for JP RECOMMENDED sorting - ditch `ordering.txt`
+- [] Find online source for deleted songs - ditch `intl_del.txt`
+  - Use 'version' tag?
+- [ ] `intl_url` json is outdated compared to live version - any way to add updates?
+- [ ] Auto-create Google Sheet
