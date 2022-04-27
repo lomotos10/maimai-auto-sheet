@@ -12,7 +12,7 @@
 
 - [x] Left-align/Middle-align based on title length
   - [ ] Currently bugged on non-roman characters
-- [] Find online source for deleted songs - ditch `intl_del.txt`
+- [ ] Find online source for deleted songs - ditch `intl_del.txt`
   - Use 'version' tag?
 - [ ] `intl_url` json is outdated compared to live version - any way to add updates?
 - [ ] Auto-create Google Sheet
